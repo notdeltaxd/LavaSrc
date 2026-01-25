@@ -18,6 +18,7 @@ plugins:
       qobuz: false # Enabled qobuz source
       ytdlp: false # Enable yt-dlp source
       jiosaavn: false # Enable the JioSaavn source
+      audiomack: false # Enable the Audiomack source
     lyrics-sources:
       spotify: false # Enable Spotify lyrics source
       deezer: false # Enable Deezer lyrics source
@@ -97,6 +98,10 @@ plugins:
       apiUrl: "http://localhost:3000" # The base URL of your JioSaavn API server
       searchLimit: 5 # How many search results should be returned
       recommendationsLimit: 5 # How many recommendation results should be returned
+    audiomack:
+      # consumerKey: "audiomack-web" # Optional: custom OAuth consumer key (defaults to audiomack-web)
+      # consumerSecret: "your-secret" # Optional: custom OAuth consumer secret (defaults to built-in secret)
+      searchLimit: 10 # How many search results should be returned
 
 server: # REST and WS server
   port: 2333

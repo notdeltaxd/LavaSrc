@@ -32,6 +32,7 @@
 | YouTube([yt-dlp](https://github.com/yt-dlp/yt-dlp)) | 📁💿🎵🧑🔍     | Direct                       | [@topi314](https://github.com/topi314)                                                                                 |
 | [LRCLIB](https://lrclib.net))                       | 📜             | N/A                          | [@topi314](https://github.com/topi314)                                                                                 |
 | JioSaavn                                            | 📁💿🎵🧑🔍📻🔬   | Direct                       | [@notdeltaxd](https://github.com/notdeltaxd)                                                                           |
+| Audiomack                                           | 📁💿🎵🧑🔍     | Direct                       | [@notdeltaxd](https://github.com/notdeltaxd)                                                                           |
 ### Features
 
 - 📁 playlists
@@ -116,6 +117,7 @@ plugins:
       qobuz : false # Enabled qobuz source
       ytdlp: false # Enable yt-dlp source
       jiosaavn: false # Enable JioSaavn source
+      audiomack: false # Enable Audiomack source
     lyrics-sources:
       spotify: false # Enable Spotify lyrics source
       deezer: false # Enable Deezer lyrics source
@@ -195,6 +197,10 @@ plugins:
       apiUrl: "http://localhost:3000" # The base URL of your JioSaavn API server
       searchLimit: 5 # How many search results should be returned
       recommendationsLimit: 5 # How many recommendation results should be returned
+    audiomack:
+#      consumerKey: "audiomack-web" # Optional: custom OAuth consumer key
+#      consumerSecret: "your-secret" # Optional: custom OAuth consumer secret
+      searchLimit: 10 # How many search results should be returned
 ```
 
 ### Plugin Info

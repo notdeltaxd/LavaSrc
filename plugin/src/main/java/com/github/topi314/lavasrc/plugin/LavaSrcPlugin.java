@@ -5,6 +5,7 @@ import com.github.topi314.lavalyrics.api.LyricsManagerConfiguration;
 import com.github.topi314.lavasearch.SearchManager;
 import com.github.topi314.lavasearch.api.SearchManagerConfiguration;
 import com.github.topi314.lavasrc.applemusic.AppleMusicSourceManager;
+import com.github.topi314.lavasrc.audiomack.AudiomackAudioSourceManager;
 import com.github.topi314.lavasrc.deezer.DeezerAudioSourceManager;
 import com.github.topi314.lavasrc.deezer.DeezerAudioTrack;
 import com.github.topi314.lavasrc.flowerytts.FloweryTTSSourceManager;
@@ -51,6 +52,7 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 	private JioSaavnAudioSourceManager jioSaavn;
 	private QobuzAudioSourceManager qobuz;
 	private YtdlpAudioSourceManager ytdlp;
+	private AudiomackAudioSourceManager audiomack;
 	private LrcLibLyricsManager lrcLib;
 
 	public LavaSrcPlugin(
@@ -68,6 +70,7 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 		QobuzConfig qobuzConfig,
 		YtdlpConfig ytdlpConfig,
 		JioSaavnConfig jioSaavnConfig,
+		AudiomackConfig audiomackConfig,
 		ProxyConfigurationService proxyConfigurationService
 	) {
 		log.info("Loading LavaSrc plugin...");
@@ -184,6 +187,13 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 				this.jioSaavn.setRecommendationsLimit(jioSaavnConfig.getRecommendationsLimit());
 			}
 		}
+
+		if (sourcesConfig.isAudiomack()) {
+			this.audiomack = new AudiomackAudioSourceManager(audiomackConfig.getConsumerKey(), audiomackConfig.getConsumerSecret());
+			if (audiomackConfig.getSearchLimit() > 0) {
+				this.audiomack.setSearchLimit(audiomackConfig.getSearchLimit());
+			}
+		}
 	}
 
 	private boolean hasNewYoutubeSource() {
@@ -238,6 +248,10 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 		if (this.jioSaavn != null) {
 			log.info("Registering JioSaavn audio source manager...");
 			manager.registerSourceManager(this.jioSaavn);
+		}
+		if (this.audiomack != null) {
+			log.info("Registering Audiomack audio source manager...");
+			manager.registerSourceManager(this.audiomack);
 		}
 		return manager;
 	}

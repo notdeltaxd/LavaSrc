@@ -19,6 +19,7 @@ public class SourcesConfig {
 	private boolean tidal = false;
 	private boolean ytdlp = false;
 	private boolean jiosaavn = false;
+	private boolean audiomack = false;
 
 	public boolean isSpotify() {
 		return this.spotify;
@@ -106,5 +107,13 @@ public class SourcesConfig {
 
 	public void setJiosaavn(boolean jiosaavn) {
 		this.jiosaavn = jiosaavn;
+	}
+
+	public boolean isAudiomack() {
+		return this.audiomack;
+	}
+
+	public void setAudiomack(boolean audiomack) {
+		this.audiomack = audiomack;
 	}
 }
