@@ -1,7 +1,5 @@
 package com.github.topi314.lavasrc.jiosaavn;
 
-import com.github.topi314.lavasearch.AudioSearchManager;
-import com.github.topi314.lavasearch.result.AudioSearchResult;
 import com.github.topi314.lavasrc.ExtendedAudioPlaylist;
 import com.github.topi314.lavasrc.ExtendedAudioSourceManager;
 import com.github.topi314.lavasrc.LavaSrcTools;
@@ -16,21 +14,6 @@ import com.sedmelluq.discord.lavaplayer.track.AudioReference;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
-
-import java.io.DataInput;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -39,27 +22,73 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JioSaavnAudioSourceManager extends ExtendedAudioSourceManager implements HttpConfigurable, AudioSearchManager {
-	public static final Pattern URL_PATTERN = Pattern.compile(
-		"https://www\\.jiosaavn\\.com/(?<type>album|featured|song|s/playlist|artist)/[^/]+/(?<id>[A-Za-z0-9_,\\-]+)"
+import java.io.DataInput;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class JioSaavnAudioSourceManager extends ExtendedAudioSourceManager implements HttpConfigurable {
+
+	private static final Pattern JIOSAAVN_REGEX = Pattern.compile(
+		"(?:https?://)?(?:www\\.)?(?:jiosaavn\\.com|saavn\\.com)/((?:s/)?(?:song|album|artist|featured|p/album|s/playlist))"
 	);
+
 	public static final String SEARCH_PREFIX = "jssearch:";
 	public static final String RECOMMENDATIONS_PREFIX = "jsrec:";
-	public static final String PREVIEW_PREFIX = "jsprev:";
-	public static final long PREVIEW_LENGTH = 30000L;
-	public static final String MEDIA_API_BASE = "https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0%3F_marker%3D0&_format=json&pids=";
-	public static final String SEARCH_API_BASE = "https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&_marker=0&cc=in&includeMetaTags=1&q=";
-	public static final String METADATA_API_BASE = "https://www.jiosaavn.com/api.php?__call=webapi.get&api_version=4&_format=json&_marker=0&ctx=web6dot0&token=%s&type=%s";
-	public static final String RECOS_STATION_API_BASE = "https://www.jiosaavn.com/api.php?__call=webradio.createEntityStation&api_version=4&_format=json&_marker=0&ctx=android&entity_id=%s&entity_type=queue";
-	public static final String RECOS_API_BASE = "https://www.jiosaavn.com/api.php?__call=webradio.getSong&api_version=4&_format=json&_marker=0&ctx=android&stationid=%s&k=20";
-	public static final String ARTIST_RECOS_API_BASE = "https://www.jiosaavn.com/api.php?__call=search.artistOtherTopSongs&api_version=4&_format=json&_marker=0&ctx=wap6dot0&artist_ids=%s&song_id=%s&language=unknown";
+
+	public static final String API_SEARCH = "/api/search?q=%s";
+	public static final String API_TRACK_BY_URL = "/api/track?url=%s";
+	public static final String API_RECOMMENDATIONS = "/api/recommendations?id=%s&limit=%d";
+	public static final String API_ALBUM_BY_URL = "/api/album?url=%s";
+	public static final String API_ARTIST_BY_URL = "/api/artist?url=%s";
+	public static final String API_PLAYLIST_BY_URL = "/api/playlist?url=%s";
+	public static final String API_MEDIA_URL_BY_ID = "/api/media-url?id=%s";
 
 	private static final Logger log = LoggerFactory.getLogger(JioSaavnAudioSourceManager.class);
-	private final HttpInterfaceManager httpInterfaceManager = HttpClientTools.createCookielessThreadLocalManager();
-	private final JioSaavnConfig config;
 
-	public JioSaavnAudioSourceManager(@NotNull JioSaavnConfig config) {
-		this.config = config;
+	private final HttpInterfaceManager httpInterfaceManager = HttpClientTools.createCookielessThreadLocalManager();
+	private final String baseUrl;
+	private int searchLimit = 5;
+	private int recommendationsLimit = 5;
+
+	public JioSaavnAudioSourceManager(@NotNull String apiUrl) {
+		if (apiUrl == null || apiUrl.isEmpty()) {
+			throw new IllegalArgumentException("JioSaavn API URL must be set");
+		}
+		this.baseUrl = apiUrl.endsWith("/") ? apiUrl.substring(0, apiUrl.length() - 1) : apiUrl;
+	}
+
+	public void setSearchLimit(int searchLimit) {
+		this.searchLimit = searchLimit < 1 ? 5 : searchLimit;
+	}
+
+	public void setRecommendationsLimit(int recommendationsLimit) {
+		this.recommendationsLimit = recommendationsLimit < 1 ? 5 : recommendationsLimit;
+	}
+
+	private JsonBrowser getJson(String path) throws IOException {
+		if (!path.startsWith("/")) {
+			path = "/" + path;
+		}
+		if (this.baseUrl.endsWith("/api") && path.startsWith("/api")) {
+			path = path.substring(4);
+		}
+
+		HttpGet request = new HttpGet(this.baseUrl + path);
+		request.setHeader("Accept", "application/json");
+
+		JsonBrowser response = LavaSrcTools.fetchResponseAsJson(this.httpInterfaceManager.getInterface(), request);
+		if (response == null) {
+			return JsonBrowser.NULL_BROWSER;
+		}
+
+		return response;
 	}
 
 	@NotNull
@@ -68,308 +97,379 @@ public class JioSaavnAudioSourceManager extends ExtendedAudioSourceManager imple
 		return "jiosaavn";
 	}
 
-	private String buildSearchUrl(String query) {
-		return SEARCH_API_BASE + URLEncoder.encode(query, StandardCharsets.UTF_8);
-	}
-
-	public AudioTrack decodeTrack(AudioTrackInfo trackInfo, DataInput input) throws IOException {
-		ExtendedAudioSourceManager.ExtendedAudioTrackInfo extendedAudioTrackInfo = super.decodeTrack(input);
-		return new JioSaavnAudioTrack(
-			trackInfo,
-			extendedAudioTrackInfo.albumName,
-			extendedAudioTrackInfo.albumUrl,
-			extendedAudioTrackInfo.artistUrl,
-			extendedAudioTrackInfo.artistArtworkUrl,
-			extendedAudioTrackInfo.previewUrl,
-			extendedAudioTrackInfo.isPreview,
-			this
-		);
-	}
-
-	@Nullable
 	@Override
-	public AudioSearchResult loadSearch(@NotNull String query, @NotNull Set<AudioSearchResult.Type> types) {
-		return null;
-	}
-
-	public AudioItem loadItem(AudioPlayerManager manager, AudioReference reference) {
+	public @Nullable AudioItem loadItem(@NotNull AudioPlayerManager manager, @NotNull AudioReference reference) {
 		String identifier = reference.identifier;
-		boolean isPreview = reference.identifier.startsWith(PREVIEW_PREFIX);
-		return this.loadItem(isPreview ? identifier.substring(PREVIEW_PREFIX.length()) : identifier, isPreview);
-	}
-
-	public AudioItem loadItem(String identifier, boolean preview) {
 		try {
-			if (identifier.startsWith(SEARCH_PREFIX)) {
-				return getSearch(identifier.substring(SEARCH_PREFIX.length()), preview);
+			// Text search via jssearch:
+			if (identifier != null && identifier.startsWith(SEARCH_PREFIX)) {
+				String query = identifier.substring(SEARCH_PREFIX.length());
+				if (query.isEmpty()) {
+					throw new IllegalArgumentException("No query provided for JioSaavn search");
+				}
+				return this.getSearch(query);
 			}
 
-			if (identifier.startsWith(RECOMMENDATIONS_PREFIX)) {
-				return getRecommendations(identifier.substring(RECOMMENDATIONS_PREFIX.length()));
+			// Recommendations by track id:
+			if (identifier != null && identifier.startsWith(RECOMMENDATIONS_PREFIX)) {
+				String id = identifier.substring(RECOMMENDATIONS_PREFIX.length());
+				if (id.isEmpty()) {
+					throw new IllegalArgumentException("No track id provided for JioSaavn recommendations");
+				}
+				return this.getRecommendations(id);
 			}
 
-			Matcher matcher = URL_PATTERN.matcher(identifier);
+			if (identifier == null || identifier.isEmpty()) {
+				return null;
+			}
+
+			// If it's a full JioSaavn URL, resolve by type using URL-based endpoints.
+			Matcher matcher = JIOSAAVN_REGEX.matcher(identifier);
 			if (!matcher.find()) {
 				return null;
 			}
 
-			String type = matcher.group("type");
-			String id = matcher.group("id");
+			String pathType = matcher.group(1);
+			String type;
+			if (pathType.equals("song") || pathType.equals("s/song")) {
+				type = "song";
+			} else if (pathType.equals("album") || pathType.equals("p/album")) {
+				type = "album";
+			} else if (pathType.equals("artist")) {
+				type = "artist";
+			} else if (pathType.equals("featured") || pathType.equals("s/playlist")) {
+				type = "playlist";
+			} else {
+				type = null;
+			}
+
+			// Strip query parameters from URL before sending to API, as URL IDs differ from metadata IDs
+			String fullUrl = stripQueryParameters(identifier);
 
 			switch (type) {
-				case "s/playlist":
-					String playlistId = identifier.substring(identifier.lastIndexOf("/") + 1);
-					return getPlaylist(playlistId, preview);
-				case "album":
-					return getAlbum(id, preview);
 				case "song":
-					return getTrack(id, preview);
-				case "featured":
-					return getPlaylist(id, preview);
+					return getTrackByUrl(fullUrl);
+				case "album":
+					return getAlbumByUrl(fullUrl);
+				case "playlist":
+					return getPlaylistByUrl(fullUrl);
 				case "artist":
-					return getArtist(id, preview);
+					return getArtistByUrl(fullUrl);
 				default:
 					return null;
 			}
 		} catch (IOException e) {
-			throw new RuntimeException("Failed to load audio item: " + e.getMessage(), e);
+			throw new RuntimeException("Failed to load JioSaavn item: " + e.getMessage(), e);
 		}
 	}
 
-	public JsonBrowser getJson(String uri) throws IOException {
-		HttpGet request = new HttpGet(uri);
-		request.setHeader("Accept", "application/json");
-		return LavaSrcTools.fetchResponseAsJson(httpInterfaceManager.getInterface(), request);
+	@Override
+	public AudioTrack decodeTrack(AudioTrackInfo trackInfo, DataInput input) throws IOException {
+		ExtendedAudioTrackInfo extended = super.decodeTrack(input);
+		return new JioSaavnAudioTrack(
+			trackInfo,
+			extended.albumName,
+			extended.albumUrl,
+			extended.artistUrl,
+			extended.artistArtworkUrl,
+			null,
+			false,
+			this
+		);
 	}
 
-	private List<AudioTrack> localParseTracks(JsonBrowser json, boolean preview, boolean metadataType) {
-		ArrayList<AudioTrack> tracks = new ArrayList<>();
+	private AudioItem getSearch(String query) throws IOException {
+		log.debug("Searching JioSaavn songs for query: {}", query);
+		JsonBrowser response = this.getJson(String.format(API_SEARCH, URLEncoder.encode(query, StandardCharsets.UTF_8)));
 
-		for (JsonBrowser track : json.values()) {
-			tracks.add(this.parseTrack(track, preview, metadataType));
+		if (response.isNull()) {
+			log.debug("No JioSaavn search results for query: {}", query);
+			return AudioReference.NO_TRACK;
 		}
 
-		return tracks;
+		List<AudioTrack> tracks = new ArrayList<>();
+		JsonBrowser results = response.get("results");
+		if (!results.isNull()) {
+			for (JsonBrowser song : results.values()) {
+				AudioTrack track = this.mapSong(song);
+				if (track != null) {
+					tracks.add(track);
+					if (tracks.size() >= this.searchLimit) {
+						break;
+					}
+				}
+			}
+		}
+
+		if (tracks.isEmpty()) {
+			log.debug("JioSaavn search returned no playable tracks for query: {}", query);
+			return AudioReference.NO_TRACK;
+		}
+
+		return new BasicAudioPlaylist("JioSaavn Search: " + query, tracks, null, true);
+	}
+
+	private AudioItem getTrackByUrl(String url) throws IOException {
+		JsonBrowser response = this.getJson(String.format(API_TRACK_BY_URL, URLEncoder.encode(url, StandardCharsets.UTF_8)));
+		if (response.isNull()) {
+			log.debug("JioSaavn: no track for url {}", url);
+			return AudioReference.NO_TRACK;
+		}
+		JsonBrowser trackData = response.get("track");
+		if (trackData.isNull()) {
+			log.debug("JioSaavn: no track data in response for url {}", url);
+			return AudioReference.NO_TRACK;
+		}
+		AudioTrack track = this.mapSong(trackData);
+		return track != null ? track : AudioReference.NO_TRACK;
+	}
+
+	private AudioItem getRecommendations(String id) throws IOException {
+		JsonBrowser response = this.getJson(String.format(API_RECOMMENDATIONS, URLEncoder.encode(id, StandardCharsets.UTF_8), this.recommendationsLimit));
+		if (response.isNull()) {
+			log.debug("JioSaavn: no recommendations for id {}", id);
+			return AudioReference.NO_TRACK;
+		}
+
+		List<AudioTrack> tracks = new ArrayList<>();
+		JsonBrowser tracksArray = response.get("tracks");
+		if (!tracksArray.isNull()) {
+			for (JsonBrowser song : tracksArray.values()) {
+				AudioTrack track = this.mapSong(song);
+				if (track != null) {
+					tracks.add(track);
+				}
+			}
+		}
+
+		if (tracks.isEmpty()) {
+			return AudioReference.NO_TRACK;
+		}
+
+		return new JioSaavnAudioPlaylist(
+			"JioSaavn Recommendations",
+			tracks,
+			ExtendedAudioPlaylist.Type.RECOMMENDATIONS,
+			id,
+			null,
+			"JioSaavn",
+			tracks.size()
+		);
+	}
+
+	private AudioItem getAlbumByUrl(String url) throws IOException {
+		JsonBrowser response = this.getJson(String.format(API_ALBUM_BY_URL, URLEncoder.encode(url, StandardCharsets.UTF_8)));
+		if (response.isNull()) {
+			log.debug("JioSaavn: no album for url {}", url);
+			return AudioReference.NO_TRACK;
+		}
+
+		JsonBrowser albumData = response.get("album");
+		if (albumData.isNull()) {
+			log.debug("JioSaavn: no album data in response for url {}", url);
+			return AudioReference.NO_TRACK;
+		}
+
+		String title = cleanString(albumData.get("name").text());
+		String artworkUrl = albumData.get("artworkUrl").text();
+		String albumUrl = albumData.get("uri").text();
+		String author = cleanString(albumData.get("author").text());
+
+		List<AudioTrack> tracks = new ArrayList<>();
+		JsonBrowser tracksArray = albumData.get("tracks");
+		if (!tracksArray.isNull()) {
+			for (JsonBrowser song : tracksArray.values()) {
+				AudioTrack track = this.mapSong(song);
+				if (track != null) {
+					tracks.add(track);
+				}
+			}
+		}
+
+		if (tracks.isEmpty()) {
+			return AudioReference.NO_TRACK;
+		}
+
+		return new JioSaavnAudioPlaylist(
+			title,
+			tracks,
+			ExtendedAudioPlaylist.Type.ALBUM,
+			albumUrl,
+			artworkUrl,
+			author,
+			tracks.size()
+		);
+	}
+
+	private AudioItem getPlaylistByUrl(String url) throws IOException {
+		JsonBrowser response = this.getJson(String.format(API_PLAYLIST_BY_URL, URLEncoder.encode(url, StandardCharsets.UTF_8)));
+		if (response.isNull()) {
+			log.debug("JioSaavn: no playlist for url {}", url);
+			return AudioReference.NO_TRACK;
+		}
+		JsonBrowser playlistData = response.get("playlist");
+		if (playlistData.isNull()) {
+			log.debug("JioSaavn: no playlist data in response for url {}", url);
+			return AudioReference.NO_TRACK;
+		}
+		return getPlaylistFromData(playlistData);
+	}
+
+	private AudioItem getPlaylistFromData(JsonBrowser playlistData) {
+		String title = cleanString(playlistData.get("title").text());
+		String artworkUrl = playlistData.get("artworkUrl").text();
+		String url = playlistData.get("uri").text();
+
+		List<AudioTrack> tracks = new ArrayList<>();
+		JsonBrowser tracksArray = playlistData.get("tracks");
+		if (!tracksArray.isNull()) {
+			for (JsonBrowser song : tracksArray.values()) {
+				AudioTrack track = this.mapSong(song);
+				if (track != null) {
+					tracks.add(track);
+				}
+			}
+		}
+
+		if (tracks.isEmpty()) {
+			return AudioReference.NO_TRACK;
+		}
+
+		String author = tracks.get(0).getInfo().author;
+
+		return new JioSaavnAudioPlaylist(
+			title,
+			tracks,
+			ExtendedAudioPlaylist.Type.PLAYLIST,
+			url,
+			artworkUrl,
+			author,
+			tracks.size()
+		);
+	}
+
+	private AudioItem getArtistByUrl(String url) throws IOException {
+		JsonBrowser response = this.getJson(String.format(API_ARTIST_BY_URL, URLEncoder.encode(url, StandardCharsets.UTF_8)));
+		if (response.isNull()) {
+			log.debug("JioSaavn: no artist for url {}", url);
+			return AudioReference.NO_TRACK;
+		}
+
+		JsonBrowser artistData = response.get("artist");
+		if (artistData.isNull()) {
+			log.debug("JioSaavn: no artist data in response for url {}", url);
+			return AudioReference.NO_TRACK;
+		}
+
+		String artistName = cleanString(artistData.get("name").text());
+		String artworkUrl = artistData.get("artworkUrl").text();
+		String artistUrl = artistData.get("uri").text();
+
+		List<AudioTrack> tracks = new ArrayList<>();
+		JsonBrowser tracksArray = artistData.get("tracks");
+		if (!tracksArray.isNull()) {
+			for (JsonBrowser song : tracksArray.values()) {
+				AudioTrack track = this.mapSong(song);
+				if (track != null) {
+					tracks.add(track);
+				}
+			}
+		}
+
+		if (tracks.isEmpty()) {
+			return AudioReference.NO_TRACK;
+		}
+
+		return new JioSaavnAudioPlaylist(
+			artistName + "'s Top Tracks",
+			tracks,
+			ExtendedAudioPlaylist.Type.ARTIST,
+			artistUrl,
+			artworkUrl,
+			artistName,
+			tracks.size()
+		);
+	}
+
+	private AudioTrack mapSong(JsonBrowser json) {
+		if (json == null || json.isNull()) {
+			return null;
+		}
+
+		// New API format uses "identifier" instead of "id"
+		String id = json.get("identifier").text();
+		if (id == null || id.isEmpty()) {
+			return null;
+		}
+
+		// New API format uses "title" instead of "name"
+		String title = cleanString(json.get("title").text());
+		if (title == null || title.isEmpty()) {
+			return null;
+		}
+
+		// New API format uses "author" as direct string instead of nested artists object
+		String author = cleanString(json.get("author").text());
+		if (author == null || author.isEmpty()) {
+			author = "Unknown";
+		}
+
+		// New API format uses "artworkUrl" as direct string instead of image array
+		String artworkUrl = json.get("artworkUrl").text();
+
+		// New API format uses "length" in milliseconds instead of "duration" in seconds
+		long durationMs = 0L;
+		if (!json.get("length").isNull()) {
+			durationMs = json.get("length").asLong(0L);
+		}
+
+		// New API format uses "uri" instead of "url"
+		String url = json.get("uri").text();
+
+		// New API format uses "albumName" and "albumUrl" as direct fields
+		String albumName = cleanString(json.get("albumName").text());
+		String albumUrl = json.get("albumUrl").text();
+
+		// New API format uses "artistUrl" and "artistArtworkUrl" as direct fields
+		String artistUrl = json.get("artistUrl").text();
+		String artistArtworkUrl = json.get("artistArtworkUrl").text();
+
+		AudioTrackInfo info = new AudioTrackInfo(
+			title,
+			author,
+			durationMs,
+			id,
+			false,
+			url,
+			artworkUrl,
+			null
+		);
+
+		return new JioSaavnAudioTrack(
+			info,
+			albumName,
+			albumUrl,
+			artistUrl,
+			artistArtworkUrl,
+			null,
+			false,
+			this
+		);
 	}
 
 	private String cleanString(String text) {
 		return text != null ? text.replace("&quot;", "").replace("&amp;", "") : null;
 	}
 
-	private AudioTrack parseTrack(JsonBrowser json, boolean preview, boolean metadataType) {
-		String identifier = json.get("id").text();
-		String title = this.cleanString(metadataType ? json.get("title").text() : json.get("song").text());
-
-		String artistArtworkUrl = null;
-		String artistUrl = null;
-		String author;
-
-		if (metadataType) {
-			JsonBrowser moreInfoJson = json.get("more_info");
-			JsonBrowser artistMapJson = moreInfoJson.get("artistMap");
-
-			List<JsonBrowser> primaryArtists = artistMapJson.get("primary_artists").values();
-			if (primaryArtists.isEmpty()) primaryArtists = artistMapJson.get("artists").values();
-			if (!primaryArtists.isEmpty()) {
-				author = primaryArtists.stream()
-					.map(artist -> artist.get("name").text())
-					.filter(name -> name != null && !name.isEmpty())
-					.collect(Collectors.joining(", "));
-
-				artistUrl = primaryArtists.get(0).get("perma_url").text();
-				artistArtworkUrl = primaryArtists.get(0).get("image").text();
-			} else {
-				author = this.cleanString(json.get("more_info").get("music").text());
-			}
-
-		} else {
-			author = this.cleanString(json.get("primary_artists").text());
-			if (author.isEmpty()) {
-				author = this.cleanString(json.get("singers").text());
-			}
+	private String stripQueryParameters(String url) {
+		if (url == null || url.isEmpty()) {
+			return url;
 		}
-
-		String artworkUrl = json.get("image").isNull() ? null : json.get("image").text().replace("150x150", "500x500");
-		long length = preview
-			? PREVIEW_LENGTH
-			: (metadataType ? json.get("more_info").get("duration").asLong(PREVIEW_LENGTH)
-			: json.get("duration").asLong(PREVIEW_LENGTH)) * 1000L;
-
-		String uri = json.get("perma_url").text();
-
-		String albumName;
-		String albumUrl;
-		String previewUrl;
-
-		if (!metadataType) {
-			albumName = !json.get("album").isNull() ? this.cleanString(json.get("album").text()) : null;
-			albumUrl = !json.get("album_url").isNull() ? json.get("album_url").text() : null;
-			previewUrl = !json.get("media_preview_url").isNull() ? json.get("media_preview_url").text() : json.get("vlink").text();
-		} else {
-			JsonBrowser moreInfoJson = json.get("more_info");
-			albumName = !moreInfoJson.get("album").isNull() ? this.cleanString(moreInfoJson.get("album").text()) : null;
-			albumUrl = !moreInfoJson.get("album_url").isNull() ? moreInfoJson.get("album_url").text() : null;
-			previewUrl = !moreInfoJson.get("vlink").isNull() ? moreInfoJson.get("vlink").text() : json.get("vlink").text();
+		int queryIndex = url.indexOf('?');
+		if (queryIndex >= 0) {
+			return url.substring(0, queryIndex);
 		}
-
-		if (artistArtworkUrl != null) {
-			artistArtworkUrl = artistArtworkUrl.replace("150x150", "500x500");
-		}
-
-		AudioTrackInfo info = new AudioTrackInfo(title, author, length, identifier, false, uri, artworkUrl, null);
-		return new JioSaavnAudioTrack(info, albumName, albumUrl, artistUrl, artistArtworkUrl, previewUrl, preview, this);
-	}
-
-
-	private AudioItem getRecommendations(String id) throws IOException {
-		String encodedId = URLEncoder.encode(String.format("[\"%s\"]", id), StandardCharsets.UTF_8);
-		JsonBrowser json = this.getJson(String.format(RECOS_STATION_API_BASE, encodedId));
-
-		if (json != null && !json.get("stationid").isNull() && !json.get("stationid").text().isEmpty()) {
-			String stationId = json.get("stationid").text();
-			json = this.getJson(String.format(RECOS_API_BASE, URLEncoder.encode(stationId, StandardCharsets.UTF_8)));
-
-			if (json != null && !json.values().isEmpty() && json.get("error").isNull()) {
-				List<AudioTrack> stationTracks = json.values()
-					.stream()
-					.filter(JsonBrowser::isMap)
-					.map(value -> value.get("song"))
-					.map(value -> this.parseTrack(value, false, true))
-					.collect(Collectors.toList());
-
-				if (!stationTracks.isEmpty()) {
-					return new JioSaavnAudioPlaylist(
-						"JioSaavn Recommendations", stationTracks, ExtendedAudioPlaylist.Type.RECOMMENDATIONS, id, null, "Saavn Editor", stationTracks.size()
-					);
-				}
-			}
-		}
-
-		JsonBrowser metadata = this.getJson(MEDIA_API_BASE + URLEncoder.encode(id, StandardCharsets.UTF_8));
-		if (metadata == null || metadata.get(id).isNull()) {
-			log.error("Failed to get metadata for id: {}", id);
-			return AudioReference.NO_TRACK;
-		}
-
-		String artistIdsJoined = metadata.get(id).get("primary_artists_id").text();
-		json = this.getJson(String.format(ARTIST_RECOS_API_BASE,
-			URLEncoder.encode(artistIdsJoined, StandardCharsets.UTF_8),
-			URLEncoder.encode(id, StandardCharsets.UTF_8)));
-
-		if (json != null && !json.values().isEmpty()) {
-			List<AudioTrack> artistTracks = this.localParseTracks(json, false, true);
-			if (!artistTracks.isEmpty()) {
-				return new JioSaavnAudioPlaylist(
-					"JioSaavn Recommendations", artistTracks, ExtendedAudioPlaylist.Type.RECOMMENDATIONS, id, null, "Saavn Editor", artistTracks.size()
-				);
-			}
-		}
-
-		return AudioReference.NO_TRACK;
-	}
-
-	private AudioItem getSearch(String query, boolean preview) throws IOException {
-		log.debug("Searching text based query on JioSaavn : {}", query);
-
-		JsonBrowser json = this.getJson(this.buildSearchUrl(query));
-		if (json == null || json.get("results").values().isEmpty()) {
-			log.debug("Failed to get search results for query: {}", query);
-			return AudioReference.NO_TRACK;
-		}
-
-		return new BasicAudioPlaylist("JioSaavn Search: " + query,
-			this.localParseTracks(json.get("results"), preview, false), null, true);
-	}
-
-
-	private AudioItem getAlbum(String id, boolean preview) throws IOException {
-		JsonBrowser json = this.getJson(String.format(METADATA_API_BASE, URLEncoder.encode(id, StandardCharsets.UTF_8), "album"));
-
-		if (json == null || json.get("list").values().isEmpty()) {
-			log.debug("Failed to get album for id: {}", id);
-			return AudioReference.NO_TRACK;
-		}
-
-		String title = this.cleanString(json.get("title").text());
-		String artworkUrl = json.get("image").text().replace("150x150", "500x500");
-		String uri = json.get("perma_url").text();
-		List<AudioTrack> tracks = this.localParseTracks(json.get("list"), preview, true);
-		int trackCount = tracks.size();
-		String author = tracks.get(0).getInfo().author;
-
-		return new JioSaavnAudioPlaylist(title, tracks, ExtendedAudioPlaylist.Type.ALBUM, uri, artworkUrl, author, trackCount);
-	}
-
-	private AudioItem getTrack(String id, boolean preview) throws IOException {
-		JsonBrowser json = this.getJson(String.format(METADATA_API_BASE, URLEncoder.encode(id, StandardCharsets.UTF_8), "song"));
-
-		if (json == null || json.get("songs").values().isEmpty()) {
-			log.debug("Failed to get track for id: {}", id);
-			return AudioReference.NO_TRACK;
-		}
-
-		JsonBrowser track = json.get("songs").values().get(0);
-		return this.parseTrack(track, preview, true);
-	}
-
-	private AudioItem getPlaylist(String id, boolean preview) throws IOException {
-
-		JsonBrowser json = this.getJson(String.format(METADATA_API_BASE, URLEncoder.encode(id, StandardCharsets.UTF_8), "playlist") + "&n=10000");
-
-		if (json == null || json.get("list").values().isEmpty()) {
-			log.debug("Failed to get playlist for id: {}", id);
-			return AudioReference.NO_TRACK;
-		}
-
-		String artworkUrl = null;
-		if (!json.get("image").isNull()) {
-			artworkUrl = json.get("image").text().replace("150x150", "500x500");
-		}
-
-		String author;
-		if (!json.get("more_info").get("firstname").isNull() && !json.get("more_info").get("firstname").text().isEmpty()) {
-			author = json.get("more_info").get("firstname").text();
-		} else {
-			author = json.get("more_info").get("username").text();
-		}
-
-		String title = this.cleanString(json.get("title").text());
-		List<AudioTrack> tracks = this.localParseTracks(json.get("list"), preview, true);
-		String url = json.get("perma_url").text();
-		int trackCount = tracks.size();
-		return new JioSaavnAudioPlaylist(title, tracks, ExtendedAudioPlaylist.Type.PLAYLIST, url, artworkUrl, author, trackCount);
-
-	}
-
-	private AudioItem getArtist(String id, boolean preview) throws IOException {
-		String url = String.format(METADATA_API_BASE, URLEncoder.encode(id, StandardCharsets.UTF_8), "artist")
-			+ "&n_song=" + config.getArtistTopTracksRequestLimit();
-		JsonBrowser json = this.getJson(url);
-
-		if (json == null || json.get("topSongs").values().isEmpty()) {
-			log.debug("Failed to get artist for id: {}", id);
-			return AudioReference.NO_TRACK;
-		}
-
-		List<AudioTrack> tracks = this.localParseTracks(json.get("topSongs"), preview, true);
-		int trackCount = tracks.size();
-		String artworkUrl = null;
-		if (!json.get("image").isNull()) {
-			artworkUrl = json.get("image").text().replace("150x150", "500x500");
-		}
-
-		String uri = json.get("urls").get("overview").text();
-		String author = this.cleanString(json.get("name").text());
-		return new JioSaavnAudioPlaylist(author + "'s Top Tracks", tracks, ExtendedAudioPlaylist.Type.ARTIST, uri, artworkUrl, author, trackCount);
-	}
-
-	@Override
-	public void shutdown() {
-		try {
-			httpInterfaceManager.close();
-		} catch (IOException e) {
-			log.error("Failed to close HTTP interface manager", e);
-		}
+		return url;
 	}
 
 	@Override
@@ -382,71 +482,22 @@ public class JioSaavnAudioSourceManager extends ExtendedAudioSourceManager imple
 		this.httpInterfaceManager.configureBuilder(configurator);
 	}
 
-	public JioSaavnConfig getConfig() {
-		return this.config;
+	@Override
+	public void shutdown() {
+		try {
+			this.httpInterfaceManager.close();
+		} catch (IOException e) {
+			log.error("Failed to close HTTP interface manager", e);
+		}
 	}
 
 	HttpInterface getHttpInterface() {
-		return httpInterfaceManager.getInterface();
+		return this.httpInterfaceManager.getInterface();
 	}
 
-	public static class JioSaavnConfig {
-		private static final String DEFAULT_ALGORITHM = "DES";
-		private static final String DEFAULT_TRANSFORMATION = "DES/ECB/PKCS5Padding";
-		private static final int DEFAULT_ARTIST_TOP_TRACKS_REQUEST_LIMIT = 20;
-
-		@NotNull
-		private String secretKey = DEFAULT_ALGORITHM;
-		@NotNull
-		private String algorithm = DEFAULT_TRANSFORMATION;
-		@NotNull
-		private String transformation;
-		private int artistTopTracksRequestLimit = DEFAULT_ARTIST_TOP_TRACKS_REQUEST_LIMIT;
-
-		public JioSaavnConfig(@NotNull String secretKey) {
-			Objects.requireNonNull(secretKey);
-			this.secretKey = secretKey;
-		}
-
-		@NotNull
-		public String getSecretKey() {
-			return secretKey;
-		}
-
-		public void setSecretKey(@NotNull String secretKey) {
-			Objects.requireNonNull(secretKey);
-			this.secretKey = secretKey;
-		}
-
-		@NotNull
-		public String getAlgorithm() {
-			return algorithm;
-		}
-
-		public void setAlgorithm(@NotNull String algorithm) {
-			Objects.requireNonNull(algorithm);
-			this.algorithm = algorithm;
-		}
-
-		@NotNull
-		public String getTransformation() {
-			return transformation;
-		}
-
-		public void setTransformation(@NotNull String transformation) {
-			Objects.requireNonNull(transformation);
-			this.transformation = transformation;
-		}
-
-		public int getArtistTopTracksRequestLimit() {
-			return artistTopTracksRequestLimit;
-		}
-
-		public void setArtistTopTracksRequestLimit(int artistTopTracksRequestLimit) {
-			if (artistTopTracksRequestLimit < 0) {
-				throw new IllegalArgumentException("artistTopTracksRequestLimit must be non-negative");
-			}
-			this.artistTopTracksRequestLimit = artistTopTracksRequestLimit;
-		}
+	String getBaseUrl() {
+		return this.baseUrl;
 	}
 }
+
+

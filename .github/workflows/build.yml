@@ -1,0 +1,46 @@
+name: Build
+
+on:
+  push:
+    branches: [ '**' ]
+    paths-ignore:
+      - '**.md'
+      - 'docker/**'
+      - '.github/workflows/docker.yml'
+  pull_request:
+    branches: [ main, dev ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build
+        run: ./gradlew build --no-daemon
+
+      - name: Upload main Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LavaSrc.jar
+          path: main/build/libs/lavasrc-*.jar
+
+      - name: Upload plugin Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LavaSrc-Plugin.jar
+          path: plugin/build/libs/lavasrc-plugin-*.jar

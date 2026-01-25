@@ -94,14 +94,9 @@ plugins:
 #      customLoadArgs: ["-q", "--no-warnings", "--flat-playlist", "--skip-download", "-J"] # Custom arguments to pass to yt-dlp
 #      customPlaybackArgs: ["-q", "--no-warnings", "-f", "bestaudio", "-J"] # Custom arguments for yt-dlp
     jiosaavn:
-      decryption: # The decryption configuration for the JioSaavn tracks
-        secretKey: "??" # The required secret key used for decryption (Find your own secret key)
-#        algorithm: "DES" # The algorithm used for decryption (Default "DES")
-#        transformation: "DES/ECB/PKCS5Padding" # The transformation used for decryption (Default "DES/ECB/PKCS5Padding")
-#      proxy: # If defined, JioSaavn HTTP requests will be proxied through here. JioSaavn uses region blocking
-#        url: "https://example.org" # The HTTP proxy to use
-#        username: "my-bot" # Optional username to authenticate with the proxy
-#        password: "youshallpass" # Optional password to authenticate with the proxy
+      apiUrl: "http://localhost:3000" # The base URL of your JioSaavn API server
+      searchLimit: 5 # How many search results should be returned
+      recommendationsLimit: 5 # How many recommendation results should be returned
 
 server: # REST and WS server
   port: 2333

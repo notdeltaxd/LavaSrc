@@ -176,9 +176,13 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 		}
 
 		if (sourcesConfig.isJiosaavn()) {
-			this.jioSaavn = new JioSaavnAudioSourceManager(jioSaavnConfig.buildConfig());
-
-			proxyConfigurationService.configure(this.jioSaavn, jioSaavnConfig.getProxy());
+			this.jioSaavn = new JioSaavnAudioSourceManager(jioSaavnConfig.getApiUrl());
+			if (jioSaavnConfig.getSearchLimit() > 0) {
+				this.jioSaavn.setSearchLimit(jioSaavnConfig.getSearchLimit());
+			}
+			if (jioSaavnConfig.getRecommendationsLimit() > 0) {
+				this.jioSaavn.setRecommendationsLimit(jioSaavnConfig.getRecommendationsLimit());
+			}
 		}
 	}
 
@@ -264,10 +268,6 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 		if (this.vkMusic != null && this.sourcesConfig.isVkMusic()) {
 			log.info("Registering VK Music search manager...");
 			manager.registerSearchManager(this.vkMusic);
-		}
-		if (this.jioSaavn != null && this.sourcesConfig.isJiosaavn()) {
-			log.info("Registering JioSaavn search manager...");
-			manager.registerSearchManager(this.jioSaavn);
 		}
 		return manager;
 	}

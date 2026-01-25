@@ -31,8 +31,7 @@
 | Qobuz                                               | 📁💿🎵🧑🔍📻   | Direct                       | [@munishkhatri720](https://github.com/munishkhatri720)                                                                 |
 | YouTube([yt-dlp](https://github.com/yt-dlp/yt-dlp)) | 📁💿🎵🧑🔍     | Direct                       | [@topi314](https://github.com/topi314)                                                                                 |
 | [LRCLIB](https://lrclib.net))                       | 📜             | N/A                          | [@topi314](https://github.com/topi314)                                                                                 |
-| JioSaavn                                            | 📁💿🎵🧑🔍📻🔬 | Direct                       | [@WeeeeeeeeeeS](https://github.com/WeeeeeeeeeeS), [@freyacodes](https://github.com/freyacodes)                         |
-
+| JioSaavn                                            | 📁💿🎵🧑🔍📻🔬   | Direct                       | [@notdeltaxd](https://github.com/notdeltaxd)                                                                           |
 ### Features
 
 - 📁 playlists
@@ -193,14 +192,9 @@ plugins:
 #      customLoadArgs: ["-q", "--no-warnings", "--flat-playlist", "--skip-download", "-J"] # Custom arguments to pass to yt-dlp
 #      customPlaybackArgs: ["-q", "--no-warnings", "-f", "bestaudio", "-J"] # Custom arguments for yt-dlp
     jiosaavn:
-      decryption: # The decryption configuration for the JioSaavn tracks
-        secretKey: "??" # The required secret key used for decryption (Find your own secret key)
-#        algorithm: "DES" # The algorithm used for decryption (Default "DES")
-#        transformation: "DES/ECB/PKCS5Padding" # The transformation used for decryption (Default "DES/ECB/PKCS5Padding")
-#      proxy: # If defined, JioSaavn HTTP requests will be proxied through here. JioSaavn uses region blocking
-#        url: "https://example.org" # The HTTP proxy to use
-#        username: "my-bot" # Optional username to authenticate with the proxy
-#        password: "youshallpass" # Optional password to authenticate with the proxy
+      apiUrl: "http://localhost:3000" # The base URL of your JioSaavn API server
+      searchLimit: 5 # How many search results should be returned
+      recommendationsLimit: 5 # How many recommendation results should be returned
 ```
 
 ### Plugin Info
@@ -825,6 +819,37 @@ AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
 // create a new YTDLPSourceManager with the path to the yt-dlp executable and register it
 playerManager.registerSourceManager(new YTDLPSourceManager("path/to/yt-dlp"));
 ```
+
+### JioSaavn
+
+<details>
+<summary>How to get the API URL</summary>
+
+1. Clone the [JioSaavn API repository](https://github.com/notdeltaxd/jiosaavn-plugin-api) and deploy it to Vercel.
+2. Follow the deployment instructions in the repository to host your own instance on Vercel.
+3. Once deployed, you'll get a URL like `https://your-app-name.vercel.app/api`.
+4. Copy this base URL (including `/api` if it's part of the path) and paste it into the config as `apiUrl`.
+5. **Important**: It's recommended to host your own instance rather than using a public one, as public instances may have rate limits or availability issues.
+
+**Example:**
+
+-   If your Vercel deployment URL is `https://jiosaavn-api.vercel.app`, and the API is at `/api`, use: `https://jiosaavn-api.vercel.app/api`
+-   If you're running locally, use: `http://localhost:3000/api`
+
+For more information about the JioSaavn API and deployment instructions, see the [JioSaavn API documentation](https://github.com/notdeltaxd/jiosaavn-plugin-api).
+
+</details>
+
+```java
+AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
+
+// create a new JioSaavnAudioSourceManager with the API URL and register it
+var jioSaavn = new JioSaavnAudioSourceManager("http://localhost:3000");
+
+playerManager.registerSourceManager(jioSaavn);
+```
+
+---
 
 
 ---
