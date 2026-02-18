@@ -12,6 +12,7 @@ data class Config(
     val qobuz: QobuzConfig? = null,
     val ytdlp: YtdlpConfig? = null,
     val pandora: PandoraConfig? = null,
+    val audiomack: AudiomackConfig? = null,
 )
 
 @Serializable
@@ -73,5 +74,10 @@ data class YtdlpConfig(
 @Serializable
 data class PandoraConfig(
     val csrfToken: String? = null,
+    val searchLimit: Int? = null,
+)
+
+@Serializable
+data class AudiomackConfig(
     val searchLimit: Int? = null,
 )

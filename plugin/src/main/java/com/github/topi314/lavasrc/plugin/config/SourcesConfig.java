@@ -20,6 +20,7 @@ public class SourcesConfig {
 	private boolean ytdlp = false;
 	private boolean jiosaavn = false;
 	private boolean pandora = false;
+	private boolean audiomack = false;
 
 	public boolean isSpotify() {
 		return this.spotify;
@@ -115,5 +116,13 @@ public class SourcesConfig {
 
 	public void setPandora(boolean pandora) {
 		this.pandora = pandora;
+	}
+
+	public boolean isAudiomack() {
+		return this.audiomack;
+	}
+
+	public void setAudiomack(boolean audiomack) {
+		this.audiomack = audiomack;
 	}
 }

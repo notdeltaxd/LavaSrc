@@ -30,9 +30,10 @@
 | Tidal                                               | 📁💿🎵🧑🔍📻   | [Mirror](#what-is-mirroring) | [@nansess](https://github.com/nansess), [@InfNibor](https://github.com/InfNibor)                                       |
 | Qobuz                                               | 📁💿🎵🧑🔍📻   | Direct                       | [@munishkhatri720](https://github.com/munishkhatri720)                                                                 |
 | YouTube([yt-dlp](https://github.com/yt-dlp/yt-dlp)) | 📁💿🎵🧑🔍     | Direct                       | [@topi314](https://github.com/topi314)                                                                                 |
-| [LRCLIB](https://lrclib.net))                       | 📜             | N/A                          | [@topi314](https://github.com/topi314)                                                                                 |
+| [LRCLIB](https://lrclib.net)                       | 📜             | N/A                          | [@topi314](https://github.com/topi314)                                                                                 |
 | JioSaavn                                            | 📁💿🎵🧑🔍📻🔬 | Direct                       | [@WeeeeeeeeeeS](https://github.com/WeeeeeeeeeeS), [@freyacodes](https://github.com/freyacodes)                         |
 | Pandora                                             | 📁💿🎵🧑🔍📻🔬   | [Mirror](#what-is-mirroring) | [@notdeltaxd](https://github.com/notdeltaxd)                                                                           |
+| Audiomack                                           | 📁💿🎵🔍       | Direct                       | [@notdeltaxd](https://github.com/notdeltaxd)                                                                           |
 
 ### Features
 
@@ -67,12 +68,12 @@ Replace x.y.z with the latest version number
 ```yaml
 lavalink:
   plugins:
-    - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:x.y.z"
-      repository: "https://maven.lavalink.dev/releases" # this is optional for lavalink v4.0.0-beta.5 or greater
-      snapshot: false # set to true if you want to use snapshot builds (see below)
+    - dependency: "com.github.notdeltaxd.LavaSrc:lavasrc-plugin:VERSION"
+      repository: "https://jitpack.io"
 ```
 
-Snapshot builds are available in https://maven.lavalink.dev/snapshots with the short commit hash as the version
+Replace `VERSION` with the latest commit hash (short SHA) or tag.
+
 
 ### Configuration
 
@@ -317,6 +318,7 @@ PATCH /v4/lavasrc/config
 | ?vkMusic     | [Vk Music Config](#vk-music-config-object)         | The Vk Music settings     |
 | ?qobuz       | [Qobuz Config](#qobuz-config-object)               | The Qobuz settings        |
 | ?pandora     | [Pandora Config](#pandora-config-object)           | The Pandora settings      |
+| ?audiomack   | [Audiomack Config](#audiomack-config-object)       | The Audiomack settings    |
 
 ##### Spotify Config Object
 
@@ -425,6 +427,9 @@ PATCH /v4/lavasrc/config
     "csrfToken": "your csrfToken",
     "searchLimit": 6
   },
+  "audiomack": {
+    "searchLimit": 20
+  }
 }
 ```
 
@@ -992,5 +997,13 @@ You can read about all the available options [here](https://flowery.pw/docs), a 
 -   https://www.pandora.com/artist/alan-walker/ARcKz4k4z2bbd5Z
 -   https://www.pandora.com/artist/all-songs/alan-walker/ARcKz4k4z2bbd5Z
 -   https://www.pandora.com/playlist/PL:844424980353351:1756780791
+
+### Audiomack
+
+* `amksearch:animals architects`
+* `amksearch:https://audiomack.com/architects/song/animals`
+* https://audiomack.com/architects/song/animals
+* https://audiomack.com/architects/album/for-those-that-wish-to-exist
+* https://audiomack.com/architects/playlist/architects-essentials
 
 ---

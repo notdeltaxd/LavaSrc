@@ -19,6 +19,7 @@ plugins:
       ytdlp: false # Enable yt-dlp source
       jiosaavn: false # Enable the JioSaavn source
       pandora: false # Enable Pandora source
+      audiomack: false # Enable Audiomack source
     lyrics-sources:
       spotify: false # Enable Spotify lyrics source
       deezer: false # Enable Deezer lyrics source
@@ -106,6 +107,12 @@ plugins:
     pandora:
       csrfToken: "your csrf token" # X-CsrfToken header from your browser session to pandora.com
       searchLimit: 6 # How many search results should be returned
+    audiomack:
+      accessToken: "your access token"
+      accessSecret: "your access secret"
+      # consumerKey: "your consumer key"
+      # consumerSecret: "your consumer secret"
+
 
 server: # REST and WS server
   port: 2333
