@@ -23,6 +23,7 @@ import com.github.topi314.lavasrc.yandexmusic.YandexMusicSourceManager;
 import com.github.topi314.lavasrc.youtube.YoutubeSearchManager;
 import com.github.topi314.lavasrc.ytdlp.YtdlpAudioSourceManager;
 import com.github.topi314.lavasrc.pandora.PandoraSourceManager;
+import com.github.topi314.lavasrc.audiomack.AudiomackAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import dev.arbjerg.lavalink.api.AudioPlayerManagerConfiguration;
 import org.jetbrains.annotations.NotNull;
@@ -55,6 +56,7 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 	private QobuzAudioSourceManager qobuz;
 	private YtdlpAudioSourceManager ytdlp;
 	private PandoraSourceManager pandora;
+	private AudiomackAudioSourceManager audiomack;
 	private LrcLibLyricsManager lrcLib;
 
 	public LavaSrcPlugin(
@@ -74,6 +76,7 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 		JioSaavnConfig jioSaavnConfig,
 		GaanaConfig gaanaConfig,
 		PandoraConfig pandoraConfig,
+		AudiomackConfig audiomackConfig,
 		ProxyConfigurationService proxyConfigurationService
 	) {
 		log.info("Loading LavaSrc plugin...");
@@ -198,6 +201,13 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 				this.pandora.setSearchLimit(pandoraConfig.getSearchLimit());
 			}
 		}
+
+		if (sourcesConfig.isAudiomack()) {
+			this.audiomack = new AudiomackAudioSourceManager(audiomackConfig.getConsumerKey(), audiomackConfig.getConsumerSecret(), audiomackConfig.getAccessToken(), audiomackConfig.getAccessSecret());
+			if (audiomackConfig.getSearchLimit() > 0) {
+				this.audiomack.setSearchLimit(audiomackConfig.getSearchLimit());
+			}
+		}
 	}
 
 	private boolean hasNewYoutubeSource() {
@@ -260,6 +270,10 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 		if (this.pandora != null) {
 			log.info("Registering Pandora audio source manager...");
 			manager.registerSourceManager(this.pandora);
+		}
+		if (this.audiomack != null) {
+			log.info("Registering Audiomack audio source manager...");
+			manager.registerSourceManager(this.audiomack);
 		}
 		return manager;
 	}
@@ -425,6 +439,13 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 			}
 			if (pandoraConfig.getSearchLimit() != null && pandoraConfig.getSearchLimit() > 0) {
 				this.pandora.setSearchLimit(pandoraConfig.getSearchLimit());
+			}
+		}
+		
+		var audiomackConfig = config.getAudiomack();
+		if (audiomackConfig != null && this.audiomack != null) {
+			if (audiomackConfig.getSearchLimit() != null && audiomackConfig.getSearchLimit() > 0) {
+				this.audiomack.setSearchLimit(audiomackConfig.getSearchLimit());
 			}
 		}
 	}
