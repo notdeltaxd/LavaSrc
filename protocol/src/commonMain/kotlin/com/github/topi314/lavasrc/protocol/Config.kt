@@ -13,6 +13,7 @@ data class Config(
     val ytdlp: YtdlpConfig? = null,
     val pandora: PandoraConfig? = null,
     val audiomack: AudiomackConfig? = null,
+    val gaana: GaanaConfig? = null,
 )
 
 @Serializable
@@ -79,5 +80,10 @@ data class PandoraConfig(
 
 @Serializable
 data class AudiomackConfig(
+    val searchLimit: Int? = null,
+)
+
+@Serializable
+data class GaanaConfig(
     val searchLimit: Int? = null,
 )

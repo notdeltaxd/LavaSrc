@@ -32,6 +32,7 @@
 | YouTube([yt-dlp](https://github.com/yt-dlp/yt-dlp)) | 📁💿🎵🧑🔍     | Direct                       | [@topi314](https://github.com/topi314)                                                                                 |
 | [LRCLIB](https://lrclib.net)                       | 📜             | N/A                          | [@topi314](https://github.com/topi314)                                                                                 |
 | JioSaavn                                            | 📁💿🎵🧑🔍📻🔬 | Direct                       | [@WeeeeeeeeeeS](https://github.com/WeeeeeeeeeeS), [@freyacodes](https://github.com/freyacodes)                         |
+| Gaana                                               | 📁💿🎵🧑🔍     | Direct                       | [@notdeltaxd](https://github.com/notdeltaxd)                                                                           |
 | Pandora                                             | 📁💿🎵🧑🔍📻🔬   | [Mirror](#what-is-mirroring) | [@notdeltaxd](https://github.com/notdeltaxd)                                                                           |
 | Audiomack                                           | 📁💿🎵🔍       | Direct                       | [@notdeltaxd](https://github.com/notdeltaxd)                                                                           |
 
@@ -120,7 +121,9 @@ plugins:
       tidal: false # Enable Tidal source
       qobuz : false # Enabled qobuz source
       ytdlp: false # Enable yt-dlp source
+      ytdlp: false # Enable yt-dlp source
       jiosaavn: false # Enable JioSaavn source
+      gaana: false # Enable Gaana source
       pandora: false # Enable Pandora source
     lyrics-sources:
       spotify: false # Enable Spotify lyrics source
@@ -203,6 +206,12 @@ plugins:
 #        algorithm: "DES" # The algorithm used for decryption (Default "DES")
 #        transformation: "DES/ECB/PKCS5Padding" # The transformation used for decryption (Default "DES/ECB/PKCS5Padding")
 #      proxy: # If defined, JioSaavn HTTP requests will be proxied through here. JioSaavn uses region blocking
+#        url: "https://example.org" # The HTTP proxy to use
+#        username: "my-bot" # Optional username to authenticate with the proxy
+#        password: "youshallpass" # Optional password to authenticate with the proxy
+    gaana:
+      searchLimit: 20 # How many search results should be returned
+#      proxy: # If defined, Gaana HTTP requests will be proxied through here.
 #        url: "https://example.org" # The HTTP proxy to use
 #        username: "my-bot" # Optional username to authenticate with the proxy
 #        password: "youshallpass" # Optional password to authenticate with the proxy
@@ -317,6 +326,7 @@ PATCH /v4/lavasrc/config
 | ?yandexMusic | [Yandex Music Config](#yandex-music-config-object) | The Yandex Music settings |
 | ?vkMusic     | [Vk Music Config](#vk-music-config-object)         | The Vk Music settings     |
 | ?qobuz       | [Qobuz Config](#qobuz-config-object)               | The Qobuz settings        |
+| ?gaana       | [Gaana Config](#gaana-config-object)               | The Gaana settings        |
 | ?pandora     | [Pandora Config](#pandora-config-object)           | The Pandora settings      |
 | ?audiomack   | [Audiomack Config](#audiomack-config-object)       | The Audiomack settings    |
 
@@ -373,6 +383,14 @@ PATCH /v4/lavasrc/config
 | ?userOauthToken | string | The Qobuz user token |
 | ?appId          | String | The Qobuz App ID     |
 | ?appSecret      | string | The Qobuz App Secret |
+
+
+
+#### Gaana Config Object
+
+| Field        | Type | Description             |
+|--------------|------|-------------------------|
+| ?searchLimit | int  | The search result limit |
 
 #### Pandora Config Object
 
@@ -877,6 +895,16 @@ var pandora = new PandoraSourceManager(csrfToken, () -> playerManager, new Defau
 playerManager.registerSourceManager(pandora);
 ```
 
+### Gaana
+
+```java
+AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
+
+// create a new GaanaAudioSourceManager and register it
+var gaana = new GaanaAudioSourceManager(20);
+playerManager.registerSourceManager(gaana);
+```
+
 
 ---
 ## Supported URLs and Queries
@@ -1005,5 +1033,13 @@ You can read about all the available options [here](https://flowery.pw/docs), a 
 * https://audiomack.com/architects/song/animals
 * https://audiomack.com/architects/album/for-those-that-wish-to-exist
 * https://audiomack.com/architects/playlist/architects-essentials
+
+### Gaana
+
+- `gaanasearch:arijit singh`
+- https://gaana.com/song/apna-bana-le-piya
+- https://gaana.com/album/bhediya
+- https://gaana.com/playlist/gaana-dj-bollywood-top-50-1
+- https://gaana.com/artist/arijit-singh
 
 ---
