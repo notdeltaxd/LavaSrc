@@ -8,6 +8,7 @@ import com.github.topi314.lavasrc.applemusic.AppleMusicSourceManager;
 import com.github.topi314.lavasrc.deezer.DeezerAudioSourceManager;
 import com.github.topi314.lavasrc.deezer.DeezerAudioTrack;
 import com.github.topi314.lavasrc.flowerytts.FloweryTTSSourceManager;
+import com.github.topi314.lavasrc.gaana.GaanaAudioSourceManager;
 import com.github.topi314.lavasrc.jiosaavn.JioSaavnAudioSourceManager;
 import com.github.topi314.lavasrc.lrclib.LrcLibLyricsManager;
 import com.github.topi314.lavasrc.mirror.DefaultMirroringAudioTrackResolver;
@@ -50,6 +51,7 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 	private VkMusicSourceManager vkMusic;
 	private TidalSourceManager tidal;
 	private JioSaavnAudioSourceManager jioSaavn;
+	private GaanaAudioSourceManager gaana;
 	private QobuzAudioSourceManager qobuz;
 	private YtdlpAudioSourceManager ytdlp;
 	private PandoraSourceManager pandora;
@@ -70,6 +72,7 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 		QobuzConfig qobuzConfig,
 		YtdlpConfig ytdlpConfig,
 		JioSaavnConfig jioSaavnConfig,
+		GaanaConfig gaanaConfig,
 		PandoraConfig pandoraConfig,
 		ProxyConfigurationService proxyConfigurationService
 	) {
@@ -184,6 +187,11 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 			proxyConfigurationService.configure(this.jioSaavn, jioSaavnConfig.getProxy());
 		}
 
+		if (sourcesConfig.isGaana()) {
+			this.gaana = new GaanaAudioSourceManager(gaanaConfig.getSearchLimit());
+			proxyConfigurationService.configure(this.gaana, gaanaConfig.getProxy());
+		}
+
 		if (sourcesConfig.isPandora()) {
 			this.pandora = new PandoraSourceManager(pluginConfig.getProviders(), pandoraConfig.getCsrfToken(), unused -> this.manager);
 			if (pandoraConfig.getSearchLimit() > 0) {
@@ -245,6 +253,10 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 			log.info("Registering JioSaavn audio source manager...");
 			manager.registerSourceManager(this.jioSaavn);
 		}
+		if (this.gaana != null) {
+			log.info("Registering Gaana audio source manager...");
+			manager.registerSourceManager(this.gaana);
+		}
 		if (this.pandora != null) {
 			log.info("Registering Pandora audio source manager...");
 			manager.registerSourceManager(this.pandora);
@@ -283,6 +295,7 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 			log.info("Registering JioSaavn search manager...");
 			manager.registerSearchManager(this.jioSaavn);
 		}
+
 		if (this.pandora != null && this.sourcesConfig.isPandora()) {
 			log.info("Registering Pandora audio search manager...");
 			manager.registerSearchManager(this.pandora);
@@ -395,6 +408,13 @@ public class LavaSrcPlugin implements AudioPlayerManagerConfiguration, SearchMan
 			}
 			if (ytdlpConfig.getCustomPlaybackArgs() != null) {
 				this.ytdlp.setCustomPlaybackArgs(ytdlpConfig.getCustomPlaybackArgs().toArray(String[]::new));
+			}
+		}
+
+		var gaanaConfig = config.getGaana();
+		if (gaanaConfig != null && this.gaana != null) {
+			if (gaanaConfig.getSearchLimit() != null && gaanaConfig.getSearchLimit() > 0) {
+				this.gaana.setSearchLimit(gaanaConfig.getSearchLimit());
 			}
 		}
 
