@@ -121,10 +121,10 @@ plugins:
       tidal: false # Enable Tidal source
       qobuz : false # Enabled qobuz source
       ytdlp: false # Enable yt-dlp source
-      ytdlp: false # Enable yt-dlp source
       jiosaavn: false # Enable JioSaavn source
       gaana: false # Enable Gaana source
       pandora: false # Enable Pandora source
+      audiomack: false # Enable Audiomack source
     lyrics-sources:
       spotify: false # Enable Spotify lyrics source
       deezer: false # Enable Deezer lyrics source
@@ -218,6 +218,12 @@ plugins:
     pandora:
       csrfToken: "your csrf token" # X-CsrfToken header from your browser session to pandora.com
       searchLimit: 6 # How many search results should be returned
+    audiomack:
+      accessToken: "your access token"
+      accessSecret: "your access secret"
+      # consumerKey: "your consumer key"
+      # consumerSecret: "your consumer secret"
+      searchLimit: 20 # How many search results should be returned
 ```
 
 ### Plugin Info
@@ -398,6 +404,16 @@ PATCH /v4/lavasrc/config
 | ------------ | ------ | ----------------------- |
 | ?csrfToken   | String | The Pandora csrfToken   |
 | ?searchLimit | int    | The search result limit |
+
+#### Audiomack Config Object
+
+| Field           | Type   | Description             |
+| --------------- | ------ | ----------------------- |
+| ?accessToken    | String | The Audiomack accessToken |
+| ?accessSecret   | String | The Audiomack accessSecret |
+| ?consumerKey    | String | The Audiomack consumerKey |
+| ?consumerSecret | String | The Audiomack consumerSecret |
+| ?searchLimit    | int    | The search result limit |
 
 <details>
 <summary>Example Payload</summary>

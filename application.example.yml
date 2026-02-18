@@ -119,6 +119,7 @@ plugins:
       accessSecret: "your access secret"
       # consumerKey: "your consumer key"
       # consumerSecret: "your consumer secret"
+      searchLimit: 20 # How many search results should be returned
 
 
 server: # REST and WS server
